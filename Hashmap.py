@@ -1,14 +1,9 @@
 class HashMap:
-    def __init__(self, init_bucket_count=16, load_factor=0.5):
-        self.size = 0
-        self.bucket_count = init_bucket_count
-        self.load_factor = load_factor
-        self.buckets = [None] * self.bucket_count
-
     class Entity:
         def __init__(self, key, value):
             self.key = key
             self.value = value
+            self.next = None
 
     class Bucket:
         def __init__(self):
@@ -35,11 +30,16 @@ class HashMap:
                     return self.entries.pop(i).value
             return None
 
+    def __init__(self, init_bucket_count=16, load_factor=0.5):
+        self.size = 0
+        self.bucket_count = init_bucket_count
+        self.load_factor = load_factor
+        self.buckets = [None] * self.bucket_count
+
     def calculate_bucket_index(self, key):
         return hash(key) % self.bucket_count
 
     def recalculate(self):
-        self.size = 0
         old_buckets = self.buckets
         self.bucket_count *= 2
         self.buckets = [None] * self.bucket_count
@@ -54,7 +54,7 @@ class HashMap:
 
         index = self.calculate_bucket_index(key)
         bucket = self.buckets[index]
-        if not bucket:
+        if bucket is None:
             bucket = self.Bucket()
             self.buckets[index] = bucket
 
@@ -67,14 +67,14 @@ class HashMap:
     def get(self, key):
         index = self.calculate_bucket_index(key)
         bucket = self.buckets[index]
-        if not bucket:
+        if bucket is None:
             return None
         return bucket.get(key)
 
     def remove(self, key):
         index = self.calculate_bucket_index(key)
         bucket = self.buckets[index]
-        if not bucket:
+        if bucket is None:
             return None
         res = bucket.remove(key)
         if res is not None:
@@ -82,10 +82,19 @@ class HashMap:
         return res
 
     def __iter__(self):
-        return self.HashMapIterator()
+        return self.HashMapIterator(self)
+    
+    def items(self):
+        entries = []
+        for bucket in self.buckets:
+            if bucket and bucket.entries:
+                for entry in bucket.entries:
+                    entries.append(entry)
+        return entries
 
     class HashMapIterator:
-        def __init__(self):
+        def __init__(self, hashmap):
+            self.hashmap = hashmap
             self.bucket_index = 0
             self.current_node = None
             self.find_next_node()
@@ -103,38 +112,11 @@ class HashMap:
             return entity
 
         def find_next_node(self):
-            while self.bucket_index < len(self.buckets):
-                bucket = self.buckets[self.bucket_index]
+            while self.bucket_index < len(self.hashmap.buckets):
+                bucket = self.hashmap.buckets[self.bucket_index]
                 if bucket and bucket.entries:
                     self.current_node = bucket.entries[0]
                     self.bucket_index += 1
                     return
                 self.bucket_index += 1
             self.current_node = None
-
-class Employee:
-    def __init__(self, name, age):
-        self.name = name
-        self.age = age
-
-# Пример использования:
-employee1 = Employee("AAA", 30)
-print(hash(employee1))
-
-hash_map = HashMap(4)
-
-hash_map.put("+79005551122", "Александр")
-hash_map.put("+79005551123", "Сергей")
-hash_map.put("+79005551123", "Алексей")
-hash_map.put("+79005551124", "Игорь")
-hash_map.put("+79005551125", "Антон")
-hash_map.put("+79005551126", "Федя")
-hash_map.put("+79005551127", "Олег")
-hash_map.put("+79005551128", "Глеб")
-
-search_res = hash_map.get("+790055511221")
-
-v = hash_map.remove("+79005551127")
-
-for entry in hash_map:
-    print(f"Ключ: {entry.key}, Значение: {entry.value}")
